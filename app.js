@@ -1,5 +1,5 @@
 import { ethers } from "https://esm.sh/ethers@6.13.4";
-const CONTRACT_ADDRESS="PASTE_CONTRACT_ADDRESS_HERE";
+const CONTRACT_ADDRESS="0x390Ad89BA5409b0FB99D25f96b9B1ad390Cd0BA3";
 const READ_RPC="https://ethereum.publicnode.com";
 const MAX_SUPPLY=10000;
 const PRICE_ETH="0.0001";
