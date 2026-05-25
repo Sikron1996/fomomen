@@ -1,6 +1,8 @@
 import { ethers } from "https://esm.sh/ethers@6.13.4";
+import EthereumProvider from "https://esm.sh/@walletconnect/ethereum-provider@2.17.2";
 
-const CONTRACT_ADDRESS = "0x390Ad89BA5409b0FB99D25f96b9B1ad390Cd0BA3";
+const CONTRACT_ADDRESS = "PASTE_CONTRACT_ADDRESS_HERE";
+const PROJECT_ID = "fe55ea601c3e7e0925c0b33723d6b158";
 const READ_RPC = "https://ethereum.publicnode.com";
 const MAX_SUPPLY = 10000;
 const PRICE_ETH = "0.0001";
@@ -12,8 +14,16 @@ const ABI = [
   "function minted(address user) view returns (uint256)"
 ];
 
-let provider, signer, contract, readProvider, readContract, account;
+const MAINNET_HEX = "0x1";
+const MAINNET_ID = 1;
+
+let wcProvider, provider, signer, contract, readProvider, readContract, account;
 const $ = id => document.getElementById(id);
+const modal = $("walletModal");
+
+function status(x){ $("status").textContent = x; }
+function openModal(){ modal.classList.remove("hidden"); }
+function closeModal(){ modal.classList.add("hidden"); }
 
 function amount(){
   let a = Number($("amount").value);
@@ -25,7 +35,7 @@ function amount(){
 
 function initRead(){
   if(CONTRACT_ADDRESS === "PASTE_CONTRACT_ADDRESS_HERE"){
-    $("status").textContent = "Встав адресу контракту в app.js";
+    status("Встав адресу контракту в app.js");
     return false;
   }
 
@@ -35,6 +45,72 @@ function initRead(){
   $("etherscanLink").href = "https://etherscan.io/address/" + CONTRACT_ADDRESS;
   $("openseaLink").href = "https://opensea.io/assets/ethereum/" + CONTRACT_ADDRESS;
   return true;
+}
+
+async function setup(p, acc){
+  if(CONTRACT_ADDRESS === "PASTE_CONTRACT_ADDRESS_HERE") {
+    throw new Error("Встав адресу контракту в app.js");
+  }
+
+  provider = new ethers.BrowserProvider(p);
+  signer = await provider.getSigner();
+  account = acc || await signer.getAddress();
+
+  contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+  readContract = contract;
+
+  $("wallet").textContent = account.slice(0,6) + "..." + account.slice(-4);
+  closeModal();
+
+  await loadSupply();
+  await updatePrice();
+}
+
+async function connectBrowser(){
+  try{
+    if(!window.ethereum) throw new Error("Wallet extension not found");
+
+    if(await window.ethereum.request({method:"eth_chainId"}) !== MAINNET_HEX){
+      await window.ethereum.request({
+        method:"wallet_switchEthereumChain",
+        params:[{chainId:MAINNET_HEX}]
+      });
+    }
+
+    const acc = await window.ethereum.request({method:"eth_requestAccounts"});
+    await setup(window.ethereum, acc[0]);
+  }catch(e){
+    status("Error: " + (e.shortMessage || e.message));
+  }
+}
+
+async function connectWC(){
+  try{
+    if(CONTRACT_ADDRESS === "PASTE_CONTRACT_ADDRESS_HERE") {
+      throw new Error("Встав адресу контракту в app.js");
+    }
+
+    wcProvider = await EthereumProvider.init({
+      projectId: PROJECT_ID,
+      chains: [MAINNET_ID],
+      optionalChains: [MAINNET_ID],
+      showQrModal: true
+    });
+
+    await wcProvider.connect();
+    await setup(wcProvider, (wcProvider.accounts || [])[0]);
+  }catch(e){
+    status("Error: " + (e.shortMessage || e.message));
+  }
+}
+
+async function disconnect(){
+  try{ if(wcProvider) await wcProvider.disconnect(); }catch(e){}
+  provider = signer = contract = account = null;
+  $("wallet").textContent = "not connected";
+  status("Disconnected");
+  initRead();
+  await loadSupply();
 }
 
 async function loadSupply(){
@@ -50,34 +126,7 @@ async function loadSupply(){
 
     await updatePrice();
   }catch(e){
-    $("status").textContent = "Read error: " + (e.shortMessage || e.message);
-  }
-}
-
-async function connect(){
-  try{
-    if(!window.ethereum) throw new Error("Wallet not found");
-
-    if(await window.ethereum.request({method:"eth_chainId"}) !== "0x1"){
-      await window.ethereum.request({
-        method:"wallet_switchEthereumChain",
-        params:[{chainId:"0x1"}]
-      });
-    }
-
-    const acc = await window.ethereum.request({method:"eth_requestAccounts"});
-    provider = new ethers.BrowserProvider(window.ethereum);
-    signer = await provider.getSigner();
-    account = acc[0];
-
-    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-    readContract = contract;
-
-    $("wallet").textContent = account.slice(0,6) + "..." + account.slice(-4);
-    await loadSupply();
-    await updatePrice();
-  }catch(e){
-    $("status").textContent = "Error: " + (e.shortMessage || e.message);
+    status("Read error: " + (e.shortMessage || e.message));
   }
 }
 
@@ -100,10 +149,7 @@ async function updatePrice(){
 
 async function mint(){
   try{
-    if(!contract){
-      await connect();
-      if(!contract) return;
-    }
+    if(!contract){ openModal(); return; }
 
     const a = BigInt(amount());
     const p = await contract.PRICE();
@@ -112,20 +158,24 @@ async function mint(){
     let paid = a;
     if(used === 0n) paid = paid > 0n ? paid - 1n : 0n;
 
-    $("status").textContent = "Confirm mint...";
+    status("Confirm mint...");
     const tx = await contract.mint(Number(a), { value: p * paid });
 
-    $("status").textContent = "Tx: " + tx.hash;
+    status("Tx: " + tx.hash);
     await tx.wait();
 
-    $("status").textContent = "Mint success";
+    status("Mint success");
     await loadSupply();
   }catch(e){
-    $("status").textContent = "Error: " + (e.shortMessage || e.message);
+    status("Error: " + (e.shortMessage || e.message));
   }
 }
 
-$("connectBtn").onclick = connect;
+$("connectBtn").onclick = openModal;
+$("closeModalBtn").onclick = closeModal;
+$("browserWalletBtn").onclick = connectBrowser;
+$("walletConnectBtn").onclick = connectWC;
+$("disconnectBtn").onclick = disconnect;
 $("mintBtn").onclick = mint;
 $("refreshBtn").onclick = loadSupply;
 $("minus").onclick = async()=>{ $("amount").value = Math.max(1, amount()-1); await updatePrice(); };

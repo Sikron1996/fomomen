@@ -23,7 +23,7 @@
     <div class="left">
       <div class="badge">10,000 PIXEL DEGENS</div>
       <h1>FOMO<br>MEN</h1>
-      <p class="desc">Built from pure FOMO. 👁️</p>
+      <p class="desc">A chaotic pixel collection for real FOMO hunters. First mint is free per wallet, next mints are 0.0001 ETH.</p>
 
       <div class="stats">
         <div><span>Minted</span><b id="mintedText">0</b></div>
@@ -47,6 +47,7 @@
       <div class="wallet" id="wallet">not connected</div>
 
       <button id="connectBtn" class="connect">CONNECT WALLET</button>
+      <button id="disconnectBtn">DISCONNECT</button>
 
       <div class="amount">
         <button id="minus">-</button>
@@ -86,6 +87,16 @@
     <div><b>BLACKLIST</b><span>bot control in contract</span></div>
   </section>
 </main>
+
+<div id="walletModal" class="modal hidden">
+  <div class="modalCard">
+    <button id="closeModalBtn" class="close">×</button>
+    <h3>CONNECT WALLET</h3>
+    <button id="browserWalletBtn">MetaMask / Rabby / OKX</button>
+    <button id="walletConnectBtn">WalletConnect / Mobile Wallets</button>
+    <p>Mobile users can connect through QR or wallet app.</p>
+  </div>
+</div>
 
 <script type="module" src="app.js"></script>
 </body>
