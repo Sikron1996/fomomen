@@ -1,1 +1,1 @@
-FOMO MEN minimal mint site. Replace PASTE_CONTRACT_ADDRESS_HERE in app.js with contract address.
+Replace PASTE_CONTRACT_ADDRESS_HERE in app.js with your FOMO MEN contract address.
