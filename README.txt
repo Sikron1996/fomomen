@@ -1,1 +1,1 @@
-FOMO MEN with MetaMask/Rabby + WalletConnect. Replace PASTE_CONTRACT_ADDRESS_HERE in app.js.
+Replace PASTE_CONTRACT_ADDRESS_HERE in app.js with contract address.
